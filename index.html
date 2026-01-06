@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sales Dashboard</title>
+  <link rel="stylesheet" href="css/dashboard.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+    }
+  </style>
+</head>
+<body>
+  <div class="sidebar">
+    <div class="logo">
+      <i class="fas fa-chart-line"></i>
+      <h2>Sales Dashboard</h2>
+    </div>
+    
+    <div class="menu-section">
+      <h3><i class="fas fa-filter"></i> Data Filters</h3>
+      <div class="filter-group">
+        <label><i class="fas fa-store"></i> Select Branch</label>
+        <select id="branchFilter" class="modern-select">
+          <option value="ALL">All Branches</option>
+        </select>
+      </div>
+      
+      <div class="filter-group">
+        <label><i class="fas fa-calendar"></i> Date Range</label>
+        <div class="date-inputs">
+          <input type="date" id="startDate" class="modern-input">
+          <span class="date-separator">to</span>
+          <input type="date" id="endDate" class="modern-input">
+        </div>
+      </div>
+      
+      <div class="filter-group">
+        <button id="applyFilters" class="btn-primary">
+          <i class="fas fa-search"></i> Apply Filters
+        </button>
+        <button id="resetFilters" class="btn-secondary">
+          <i class="fas fa-undo"></i> Reset All
+        </button>
+      </div>
+    </div>
+    
+    <div class="menu-section">
+      <h3><i class="fas fa-columns"></i> Dashboard Views</h3>
+      <nav class="dashboard-menu">
+        <a href="#" class="menu-item active" data-view="overview">
+          <i class="fas fa-tachometer-alt"></i> Overview
+        </a>
+        <a href="#" class="menu-item" data-view="branch-performance">
+          <i class="fas fa-building"></i> Branch Performance
+        </a>
+        <a href="#" class="menu-item" data-view="sales-analysis">
+          <i class="fas fa-chart-pie"></i> Sales Analysis
+        </a>
+        <a href="#" class="menu-item" data-view="customer-insights">
+          <i class="fas fa-user-chart"></i> Customer Insights
+        </a>
+        <a href="#" class="menu-item" data-view="department-performance">
+          <i class="fas fa-layer-group"></i> Department Performance
+        </a>
+      </nav>
+    </div>
+    
+    <div class="menu-section">
+      <h3><i class="fas fa-download"></i> Export Options</h3>
+      <div class="export-options">
+        <button id="exportExcel" class="btn-export excel">
+          <i class="fas fa-file-excel"></i> Excel Export
+        </button>
+        <button id="exportPDF" class="btn-export pdf">
+          <i class="fas fa-file-pdf"></i> PDF Report
+        </button>
+        <button id="exportChart" class="btn-export chart">
+          <i class="fas fa-image"></i> Save Chart
+        </button>
+      </div>
+    </div>
+    
+    <div class="sidebar-footer">
+      <div class="data-info">
+        <i class="fas fa-info-circle"></i>
+        <div>
+          <span id="dataCount">Loading data...</span>
+          <small id="dateRangeInfo"></small>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="main-content">
+    <div class="header">
+      <div class="header-left">
+        <h1><i class="fas fa-chart-bar"></i> Sales Dashboard</h1>
+        <p class="subtitle">Real-time sales analytics and performance insights</p>
+      </div>
+      <div class="header-right">
+        <div class="last-update">
+          <i class="fas fa-clock"></i>
+          <div>
+            <span>Last Updated</span>
+            <strong id="lastUpdated">--:--</strong>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="kpi-container">
+      <div class="kpi-card primary">
+        <div class="kpi-icon">
+          <i class="fas fa-money-bill-wave"></i>
+        </div>
+        <div class="kpi-content">
+          <h3>Total Sales</h3>
+          <p id="kpi-sales">0</p>
+          <span class="kpi-subtitle">All Departments Combined</span>
+        </div>
+      </div>
+      
+      <div class="kpi-card success">
+        <div class="kpi-icon">
+          <i class="fas fa-users"></i>
+        </div>
+        <div class="kpi-content">
+          <h3>Total Customers</h3>
+          <p id="kpi-customers">0</p>
+          <span class="kpi-subtitle">Across All Branches</span>
+        </div>
+      </div>
+      
+      <div class="kpi-card warning">
+        <div class="kpi-icon">
+          <i class="fas fa-shopping-cart"></i>
+        </div>
+        <div class="kpi-content">
+          <h3>Avg. per Customer</h3>
+          <p id="kpi-average">0</p>
+          <span class="kpi-subtitle">Average Sale Amount</span>
+        </div>
+      </div>
+      
+      <div class="kpi-card info">
+        <div class="kpi-icon">
+          <i class="fas fa-chart-line"></i>
+        </div>
+        <div class="kpi-content">
+          <h3>Daily Average</h3>
+          <p id="kpi-daily-avg">0</p>
+          <span class="kpi-subtitle">Sales per Day</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Overview View -->
+    <div class="chart-container active" id="overview-view">
+      <div class="chart-header">
+        <h2><i class="fas fa-chart-line"></i> Sales Performance Overview</h2>
+        <div class="chart-controls">
+          <span class="period-label">View by:</span>
+          <select id="chartPeriod" class="modern-select small">
+            <option value="daily">Daily</option>
+            <option value="weekly">Weekly</option>
+            <option value="monthly">Monthly</option>
+          </select>
+        </div>
+      </div>
+      <div class="chart-grid">
+        <div class="chart-wrapper">
+          <div class="chart-title">Total Sales Trend</div>
+          <canvas id="salesTrendChart"></canvas>
+        </div>
+        <div class="chart-wrapper">
+          <div class="chart-title">Customer Visits Trend</div>
+          <canvas id="customerTrendChart"></canvas>
+        </div>
+      </div>
+      <div class="chart-footer">
+        <p>Showing data for selected period. Use date filters to adjust range.</p>
+      </div>
+    </div>
+
+    <!-- Branch Performance View -->
+    <div class="chart-container" id="branch-performance-view">
+      <div class="chart-header">
+        <h2><i class="fas fa-building"></i> Branch Performance Comparison</h2>
+        <div class="chart-controls">
+          <span class="metric-label">Sort by:</span>
+          <select id="branchSort" class="modern-select small">
+            <option value="sales">Total Sales</option>
+            <option value="customers">Customer Count</option>
+            <option value="average">Average per Customer</option>
+          </select>
+        </div>
+      </div>
+      <div class="chart-wrapper full-width">
+        <div class="chart-title">Branch Performance Ranking</div>
+        <canvas id="branchChart"></canvas>
+      </div>
+      <div class="metrics-grid">
+        <div class="metric-card">
+          <h4><i class="fas fa-trophy"></i> Top Performing Branch</h4>
+          <p id="top-branch">--</p>
+          <small>Highest total sales</small>
+        </div>
+        <div class="metric-card">
+          <h4><i class="fas fa-chart-line"></i> Highest Average</h4>
+          <p id="highest-average">--</p>
+          <small>Best average per customer</small>
+        </div>
+        <div class="metric-card">
+          <h4><i class="fas fa-users"></i> Most Customers</h4>
+          <p id="most-customers">--</p>
+          <small>Highest foot traffic</small>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sales Analysis View -->
+    <div class="chart-container" id="sales-analysis-view">
+      <div class="chart-header">
+        <h2><i class="fas fa-chart-pie"></i> Sales Distribution Analysis</h2>
+      </div>
+      <div class="chart-grid">
+        <div class="chart-wrapper">
+          <div class="chart-title">Sales by Department</div>
+          <canvas id="departmentChart"></canvas>
+        </div>
+        <div class="chart-wrapper">
+          <div class="chart-title">Daily Sales Pattern</div>
+          <canvas id="dailyPatternChart"></canvas>
+        </div>
+      </div>
+      <div class="stats-grid">
+        <div class="stat-card">
+          <h4>Retail Department</h4>
+          <p id="retail-stats">--</p>
+          <small>% of total sales</small>
+        </div>
+        <div class="stat-card">
+          <h4>Liquor Department</h4>
+          <p id="liquor-stats">--</p>
+          <small>% of total sales</small>
+        </div>
+        <div class="stat-card">
+          <h4>Deli Department</h4>
+          <p id="deli-stats">--</p>
+          <small>% of total sales</small>
+        </div>
+        <div class="stat-card">
+          <h4>Wholesale Department</h4>
+          <p id="wholesale-stats">--</p>
+          <small>% of total sales</small>
+        </div>
+        <div class="stat-card">
+          <h4>Pharmacy Department</h4>
+          <p id="pharmacy-stats">--</p>
+          <small>% of total sales</small>
+        </div>
+      </div>
+    </div>
+
+    <!-- Customer Insights View -->
+    <div class="chart-container" id="customer-insights-view">
+      <div class="chart-header">
+        <h2><i class="fas fa-user-chart"></i> Customer Behavior Insights</h2>
+      </div>
+      <div class="chart-grid">
+        <div class="chart-wrapper">
+          <div class="chart-title">Customer Distribution by Department</div>
+          <canvas id="customerDepartmentChart"></canvas>
+        </div>
+        <div class="chart-wrapper">
+          <div class="chart-title">Average Sale per Customer Trend</div>
+          <canvas id="avgSaleChart"></canvas>
+        </div>
+      </div>
+      <div class="insights-grid">
+        <div class="insight-card">
+          <i class="fas fa-lightbulb"></i>
+          <h4>Key Insight</h4>
+          <p id="key-insight">--</p>
+        </div>
+        <div class="insight-card">
+          <i class="fas fa-chart-bar"></i>
+          <h4>Busiest Time</h4>
+          <p id="busiest-time">--</p>
+        </div>
+        <div class="insight-card">
+          <i class="fas fa-percentage"></i>
+          <h4>Conversion Rate</h4>
+          <p id="conversion-rate">--</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Department Performance View -->
+    <div class="chart-container" id="department-performance-view">
+      <div class="chart-header">
+        <h2><i class="fas fa-layer-group"></i> Department Performance Metrics</h2>
+      </div>
+      <div class="chart-wrapper full-width">
+        <div class="chart-title">Department Performance Comparison</div>
+        <canvas id="performanceChart"></canvas>
+      </div>
+      <div class="department-metrics">
+        <div class="metric-row">
+          <span>Retail</span>
+          <div class="progress-bar">
+            <div class="progress-fill" id="retail-progress"></div>
+          </div>
+          <span id="retail-percent">0%</span>
+        </div>
+        <div class="metric-row">
+          <span>Liquor</span>
+          <div class="progress-bar">
+            <div class="progress-fill" id="liquor-progress"></div>
+          </div>
+          <span id="liquor-percent">0%</span>
+        </div>
+        <div class="metric-row">
+          <span>Deli</span>
+          <div class="progress-bar">
+            <div class="progress-fill" id="deli-progress"></div>
+          </div>
+          <span id="deli-percent">0%</span>
+        </div>
+        <div class="metric-row">
+          <span>Wholesale</span>
+          <div class="progress-bar">
+            <div class="progress-fill" id="wholesale-progress"></div>
+          </div>
+          <span id="wholesale-percent">0%</span>
+        </div>
+        <div class="metric-row">
+          <span>Pharmacy</span>
+          <div class="progress-bar">
+            <div class="progress-fill" id="pharmacy-progress"></div>
+          </div>
+          <span id="pharmacy-percent">0%</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/api.js"></script>
+  <script src="js/state.js"></script>
+  <script src="js/aggregations.js"></script>
+  <script src="js/charts.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/export.js"></script>
+</body>
+</html>
